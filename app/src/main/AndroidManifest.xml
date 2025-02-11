@@ -1,0 +1,73 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.btp_10">
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.READ_CALL_LOG"/>
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Permission to access Alarm Manager -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+
+
+
+
+
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar">
+
+        <!-- Services -->
+        <service android:name=".LocationService" android:enabled="true" android:exported="false"/>
+        <service android:name=".CallLogService" android:enabled="true" android:exported="false"/>
+        <service android:name=".UsageStatsService" android:enabled="true" android:exported="false"/>
+        <service android:name=".SensorService"  android:enabled="true" android:exported="false" />
+        <service android:name=".MicrophoneService" android:enabled="true" android:exported="false" />
+        <service android:name=".AlarmService" android:enabled="true" android:exported="false" />
+
+        <service
+            android:name=".NotificationListener"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+
+
+
+        <!-- ScreenStatusReceiver (Receiver for SCREEN_ON and SCREEN_OFF events) -->
+        <receiver android:name=".ScreenStatusReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SCREEN_ON"/>
+                <action android:name="android.intent.action.SCREEN_OFF"/>
+            </intent-filter>
+        </receiver>
+
+        <activity android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+
+    </application>
+</manifest>
