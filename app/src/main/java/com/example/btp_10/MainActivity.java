@@ -1,9 +1,12 @@
 package com.example.btp_10;
 
 import android.Manifest;
+import android.app.AlarmManager;
 import android.app.AppOpsManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -17,24 +20,48 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.btp_10.Services.CallLogService;
+import com.example.btp_10.Services.LocationService;
+import com.example.btp_10.Services.MicrophoneService;
+import com.example.btp_10.Services.NotificationListener;
+import com.example.btp_10.Services.ScreenStatusReceiver;
+import com.example.btp_10.Services.SensorService;
+import com.example.btp_10.Services.UsageStatsService;
+
+import java.util.Calendar;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_CODE = 100;
     private static final int NOTIFICATION_LISTENER_REQUEST_CODE = 101;
+    private ScreenStatusReceiver screenStatusReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         Log.d("MainActivity ", "Just set the view");
-
         // Check and request permissions at runtime
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Log.d("MainActivity", "Getting Permission.");
             checkPermissions();
+            // set broadcast
+            callScreenStatus();
+
         }
     }
+
+
+    private void callScreenStatus() {
+        screenStatusReceiver = new ScreenStatusReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        registerReceiver(screenStatusReceiver, filter);
+
+        Log.d("Logs", "ScreenStatusReceiver registered!");
+    }
+
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
     private void checkPermissions() {
@@ -110,17 +137,63 @@ public class MainActivity extends AppCompatActivity {
 
     private void requestNotificationListenerPermission() {
         Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-        startActivityForResult(intent, NOTIFICATION_LISTENER_REQUEST_CODE);
+        startActivity(intent);
     }
 
     private void startBackgroundServices() {
         // Start the services
-        startService(new Intent(this, LocationService.class));
-        startService(new Intent(this, AlarmService.class)); // Start the Alarm service to get alarm info
+        // This service will automatically called when notification posted !, No need to call it from here .
         startService(new Intent(this, NotificationListener.class)); // Start the Notification Listener service
+        // Working Good !
 //        startService(new Intent(this, MicrophoneService.class)); // Start the Microphone service
-        Log.d("MainActivity", "Background services started");
+        scheduleDailyCallLogService();
+        // Location is Good to Go !
+        startService(new Intent(this, LocationService.class));
+        scheduleDailyUsageStatsService();
+        // Working Fine
+//        startService(new Intent(this, SensorService.class));
+
+        startService(new Intent(this,ScreenStatusReceiver.class));
+        Log.d("Logs", "Background services started");
     }
+
+    private void scheduleDailyCallLogService() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        Intent intent = new Intent(this, CallLogService.class);
+        PendingIntent pendingIntent = PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // Set execution time (e.g., every day at 12:00 AM)
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 1);
+        calendar.set(Calendar.MINUTE, 28);
+        calendar.set(Calendar.SECOND, 0);
+
+        // Schedule the service
+        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+                AlarmManager.INTERVAL_DAY, pendingIntent);
+
+        Log.d("Logs", "CallLogService scheduled to run daily at midnight.");
+    }
+
+    private void scheduleDailyUsageStatsService() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        Intent intent = new Intent(this, UsageStatsService.class);
+        PendingIntent pendingIntent = PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // Set execution time (e.g., every day at 1 AM)
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 1);
+        calendar.set(Calendar.MINUTE, 22);
+        calendar.set(Calendar.SECOND, 0);
+
+        // Schedule the service
+        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+                AlarmManager.INTERVAL_DAY, pendingIntent);
+
+        Log.d("Logs", "UsageStatsService scheduled to run daily at 1 AM.");
+    }
+
+
 
     // If permissions are permanently denied (with 'Don't ask again'), ask user to go to settings
     @Override
@@ -174,4 +247,20 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (screenStatusReceiver != null) {
+            unregisterReceiver(screenStatusReceiver);
+            Log.d("Logs", "ScreenStatusReceiver unregistered!");
+        }
+    }
+
+
+
+
+
+
 }
+

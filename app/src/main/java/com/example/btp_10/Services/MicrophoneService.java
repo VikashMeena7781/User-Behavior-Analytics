@@ -1,4 +1,4 @@
-package com.example.btp_10;
+package com.example.btp_10.Services;
 
 import android.app.Service;
 import android.content.Intent;
@@ -11,17 +11,16 @@ import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 
-import java.io.IOException;
-
 public class MicrophoneService extends Service {
 
     private static final int SAMPLE_RATE = 44100; // Sampling rate (44.1kHz)
     private static final int BUFFER_SIZE = 1024; // Buffer size for audio data
-    private static final int THRESHOLD = 1000; // Threshold for detecting microphone activity (you can adjust this based on testing)
+    private static final int THRESHOLD = 500; // Threshold for detecting microphone activity (you can adjust this based on testing)
 
     private AudioRecord audioRecord;
     private boolean isRecording = false;
     private Thread recordingThread;
+    private final String TAG = "Logs";
 
     public MicrophoneService() {
     }
@@ -43,7 +42,7 @@ public class MicrophoneService extends Service {
         // Check if the device supports microphone input
         int minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
-            Log.e("MicrophoneService", "Failed to get minimum buffer size");
+            Log.e(TAG, "Failed to get minimum buffer size");
             return;
         }
 
@@ -56,7 +55,7 @@ public class MicrophoneService extends Service {
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
-            Log.d("MicrophoneService", "Permission not provided");
+            Log.d(TAG, "Permission not provided");
             return;
         }
         audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
@@ -71,7 +70,7 @@ public class MicrophoneService extends Service {
         });
         recordingThread.start();
         audioRecord.startRecording();
-        Log.d("MicrophoneService", "Microphone detection started");
+        Log.d(TAG, "Microphone detection started");
     }
 
     private void stopMicrophoneDetection() {
@@ -80,7 +79,7 @@ public class MicrophoneService extends Service {
             audioRecord.stop();
             audioRecord.release();
             audioRecord = null;
-            Log.d("MicrophoneService", "Microphone detection stopped");
+            Log.d(TAG, "Microphone detection stopped");
         }
     }
 
@@ -94,13 +93,14 @@ public class MicrophoneService extends Service {
             if (numberOfShorts > 0) {
                 // Calculate the amplitude (volume) of the audio data
                 double amplitude = calculateAmplitude(audioBuffer);
-                Log.d("MicrophoneService", "Amplitude: " + amplitude);
+//                Log.d(TAG, "Amplitude: " + amplitude);
 
                 // Check if the amplitude exceeds the threshold
                 if (amplitude > THRESHOLD) {
-                    Log.d("MicrophoneService", "Microphone activity detected");
+                    Log.d(TAG, "Microphone activity detected");
                 } else {
-                    Log.d("MicrophoneService", "No microphone activity");
+//                    Log.d(TAG, "No microphone activity");
+                    continue;
                 }
             }
         }

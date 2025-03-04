@@ -1,4 +1,4 @@
-package com.example.btp_10;
+package com.example.btp_10.Services;
 
 import android.app.IntentService;
 import android.content.Intent;
@@ -17,6 +17,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 public class LocationService extends IntentService {
     private FusedLocationProviderClient fusedLocationClient;
+    private final String TAG = "Logs";
 
     public LocationService() {
         super("LocationService");
@@ -28,13 +29,12 @@ public class LocationService extends IntentService {
 
         // Fetch location every 5 minutes
         getLocation();
-//        scheduleNextLocationRequest();
     }
 
     private void getLocation() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.d("Location Service ", "Permission Not Provided.");
+            Log.d(TAG, "Permission Not Provided.");
             return;
         }
 
@@ -45,15 +45,15 @@ public class LocationService extends IntentService {
                     public void onSuccess(Location location) {
                         if (location != null) {
                             // Log the location data
-                            Log.d("LocationService", "Location: Latitude = " + location.getLatitude() +
+                            Log.d(TAG, "Location: Latitude = " + location.getLatitude() +
                                     ", Longitude = " + location.getLongitude() +
                                     ", Altitude = " + location.getAltitude() +
                                     ", Accuracy = " + location.getAccuracy());
 
-                            Log.d("LocationService", "Scheduling next location fetch");
+                            Log.d(TAG, "Scheduling next location fetch");
                             scheduleNextLocationRequest();
                         } else {
-                            Log.d("LocationService", "Location is null.");
+                            Log.d(TAG, "Location is null.");
                         }
                     }
                 });
@@ -65,7 +65,7 @@ public class LocationService extends IntentService {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                Log.d("LocationService","Get Location Scheduled");
+                Log.d(TAG,"Get Location Scheduled");
                 getLocation();
             }
         }, delay);

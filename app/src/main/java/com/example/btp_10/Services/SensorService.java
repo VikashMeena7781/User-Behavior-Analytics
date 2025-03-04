@@ -1,4 +1,4 @@
-package com.example.btp_10;
+package com.example.btp_10.Services;
 
 import android.app.Service;
 import android.content.Intent;
@@ -17,6 +17,7 @@ import java.util.List;
 public class SensorService extends Service implements SensorEventListener {
 
     private SensorManager sensorManager;
+    private final String TAG = "Logs";
     private Sensor lightSensor;
     private Sensor motionSensor;
     private Sensor accelerometerSensor;  // For fallback motion detection
@@ -34,10 +35,10 @@ public class SensorService extends Service implements SensorEventListener {
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         // Get and log all available sensors
-        List<Sensor> allSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
-        for (Sensor sensor : allSensors) {
-            Log.d("SensorService", "Available Sensor: " + sensor.getName());
-        }
+//        List<Sensor> allSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
+//        for (Sensor sensor : allSensors) {
+//            Log.d(TAG, "Available Sensor: " + sensor.getName());
+//        }
 
         // Get Light Sensor
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -49,21 +50,21 @@ public class SensorService extends Service implements SensorEventListener {
         accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         if (lightSensor == null) {
-            Log.d("SensorService", "Light sensor not available");
+            Log.d(TAG, "Light sensor not available");
         } else {
-            Log.d("SensorService", "Light sensor initialized");
+            Log.d(TAG, "Light sensor initialized");
         }
 
         if (motionSensor == null) {
-            Log.d("SensorService", "Motion sensor not available");
+            Log.d(TAG, "Motion sensor not available");
         } else {
-            Log.d("SensorService", "Motion sensor initialized");
+            Log.d(TAG, "Motion sensor initialized");
         }
 
         if (accelerometerSensor != null) {
-            Log.d("SensorService", "Accelerometer sensor initialized (fallback for motion detection)");
+            Log.d(TAG, "Accelerometer sensor initialized (fallback for motion detection)");
         } else {
-            Log.d("SensorService", "Accelerometer sensor not available");
+            Log.d(TAG, "Accelerometer sensor not available");
         }
     }
 
@@ -101,7 +102,7 @@ public class SensorService extends Service implements SensorEventListener {
             sensorManager.unregisterListener(this, accelerometerSensor);
         }
 
-        Log.d("SensorService", "Sensors unregistered and service destroyed");
+        Log.d(TAG, "Sensors unregistered and service destroyed");
     }
 
     @Override
@@ -109,19 +110,21 @@ public class SensorService extends Service implements SensorEventListener {
         // Handle changes in sensor data
         if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
             currentLightLevel = event.values[0];
-            Log.d("SensorService", "Current Light Level: " + currentLightLevel);
-            if (currentLightLevel < 10) {
-                Log.d("SensorService", "The phone is in a dark environment");
-            } else {
-                Log.d("SensorService", "The phone is in a light environment");
+//            Log.d(TAG, "Current Light Level: " + currentLightLevel);
+            if (currentLightLevel >= 10) {
+                Log.d(TAG, "The phone is in a light environment");
             }
+//            } else {
+////                Log.d(TAG, "The phone is in a light environment");
+//            }
         } else if (event.sensor.getType() == Sensor.TYPE_MOTION_DETECT) {
             isMotionDetected = event.values[0] == 1.0f;
             if (isMotionDetected) {
-                Log.d("SensorService", "Motion Detected: The phone is moving");
-            } else {
-                Log.d("SensorService", "Motion Not Detected: The phone is at rest");
+                Log.d(TAG, "Motion Detected: The phone is moving");
             }
+//            } else {
+//                Log.d(TAG, "Motion Not Detected: The phone is at rest");
+//            }
         } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             // Handle motion detection using accelerometer
             float x = event.values[0];
@@ -129,10 +132,11 @@ public class SensorService extends Service implements SensorEventListener {
             float z = event.values[2];
             float magnitude = (float) Math.sqrt(x * x + y * y + z * z);
             if (magnitude > 10) {
-                Log.d("SensorService", "Motion Detected using Accelerometer");
-            } else {
-                Log.d("SensorService", "No significant motion detected using Accelerometer");
+                Log.d(TAG, "Motion Detected: The phone is moving");
             }
+//            else {
+//                Log.d(TAG, "No significant motion detected using Accelerometer");
+//            }
         }
     }
 
