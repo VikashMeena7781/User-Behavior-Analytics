@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.btp_10.DataRepository;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -45,12 +46,13 @@ public class LocationService extends IntentService {
                     public void onSuccess(Location location) {
                         if (location != null) {
                             // Log the location data
-                            Log.d(TAG, "Location: Latitude = " + location.getLatitude() +
-                                    ", Longitude = " + location.getLongitude() +
-                                    ", Altitude = " + location.getAltitude() +
-                                    ", Accuracy = " + location.getAccuracy());
-
-                            Log.d(TAG, "Scheduling next location fetch");
+                            String entry = "Location: Lat=" + location.getLatitude() +
+                                    ", Long=" + location.getLongitude() +
+                                    ", Altitude=" + location.getAltitude() +
+                                    ", Accuracy=" + location.getAccuracy();
+                            Log.d(TAG, entry);
+                            DataRepository.getInstance().addLocation(entry);
+                            Log.d(TAG,"Schedule Next Location Request");
                             scheduleNextLocationRequest();
                         } else {
                             Log.d(TAG, "Location is null.");
@@ -58,7 +60,6 @@ public class LocationService extends IntentService {
                     }
                 });
     }
-
     private void scheduleNextLocationRequest() {
         // Schedule next location fetch in 5 minutes
         long delay = 5 * 60 * 1000; // 5 minutes in milliseconds

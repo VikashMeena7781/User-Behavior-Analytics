@@ -34,8 +34,6 @@
         <service android:name=".Services.UsageStatsService" android:enabled="true" android:exported="false"/>
         <service android:name=".Services.SensorService"  android:enabled="true" android:exported="false" />
         <service android:name=".Services.MicrophoneService" android:enabled="true" android:exported="false" />
-        <service android:name=".Services.AlarmService" android:enabled="true" android:exported="false" />
-
 
         <service
             android:name=".Services.NotificationListener"

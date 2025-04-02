@@ -6,29 +6,48 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 
+import com.example.btp_10.DataRepository;
+
 public class MicrophoneService extends Service {
 
-    private static final int SAMPLE_RATE = 44100; // Sampling rate (44.1kHz)
-    private static final int BUFFER_SIZE = 1024; // Buffer size for audio data
-    private static final int THRESHOLD = 500; // Threshold for detecting microphone activity (you can adjust this based on testing)
+    private static final int SAMPLE_RATE = 44100;
+    private static final int BUFFER_SIZE = 1024;
+    private static final int THRESHOLD = 500;
+    private static final int DETECTION_DURATION = 30 * 1000; // 30 seconds
+    private static final int INTERVAL = 5 * 60 * 1000; // 5 minutes
 
     private AudioRecord audioRecord;
     private boolean isRecording = false;
-    private Thread recordingThread;
     private final String TAG = "Logs";
+    private final Handler handler = new Handler();
 
-    public MicrophoneService() {
-    }
+    private final Runnable detectionRunnable = new Runnable() {
+        @Override
+        public void run() {
+            startMicrophoneDetection();
+
+            // Stop detection after 30 seconds
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    stopMicrophoneDetection();
+                    handler.postDelayed(detectionRunnable, INTERVAL); // Schedule next detection in 5 minutes
+                }
+            }, DETECTION_DURATION);
+        }
+    };
+
+    public MicrophoneService() {}
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Initialize and start the microphone detection
-        startMicrophoneDetection();
+        handler.post(detectionRunnable);
         return START_STICKY;
     }
 
@@ -36,39 +55,25 @@ public class MicrophoneService extends Service {
     public void onDestroy() {
         super.onDestroy();
         stopMicrophoneDetection();
+        handler.removeCallbacks(detectionRunnable);
     }
 
     private void startMicrophoneDetection() {
-        // Check if the device supports microphone input
         int minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
             Log.e(TAG, "Failed to get minimum buffer size");
             return;
         }
 
-        // Initialize the AudioRecord instance to read audio data
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             Log.d(TAG, "Permission not provided");
             return;
         }
-        audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
 
-        // Start the audio recording in a separate thread
+        audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
         isRecording = true;
-        recordingThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                readAudioData();
-            }
-        });
-        recordingThread.start();
+
+        new Thread(this::readAudioData).start();
         audioRecord.startRecording();
         Log.d(TAG, "Microphone detection started");
     }
@@ -84,23 +89,22 @@ public class MicrophoneService extends Service {
     }
 
     private void readAudioData() {
-        // Create a buffer to read audio data into
         short[] audioBuffer = new short[BUFFER_SIZE];
 
         while (isRecording) {
-            // Read audio data from the microphone
             int numberOfShorts = audioRecord.read(audioBuffer, 0, audioBuffer.length);
             if (numberOfShorts > 0) {
-                // Calculate the amplitude (volume) of the audio data
                 double amplitude = calculateAmplitude(audioBuffer);
-//                Log.d(TAG, "Amplitude: " + amplitude);
-
-                // Check if the amplitude exceeds the threshold
                 if (amplitude > THRESHOLD) {
-                    Log.d(TAG, "Microphone activity detected");
-                } else {
-//                    Log.d(TAG, "No microphone activity");
-                    continue;
+                    String entry = "Microphone activity detected";
+                    Log.d(TAG, entry);
+                    DataRepository.getInstance().addMicrophoneData(entry);
+//                    Log.d(TAG, "Microphone activity detected");
+                }else{
+                    String entry = "Microphone not detected";
+                    Log.d(TAG, entry);
+                    DataRepository.getInstance().addMicrophoneData(entry);
+//                    Log.d(TAG,"Microphone not detected");
                 }
             }
         }
@@ -116,7 +120,6 @@ public class MicrophoneService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        // This service does not support binding
         return null;
     }
 }

@@ -8,15 +8,14 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import java.text.SimpleDateFormat;
+import com.example.btp_10.DataRepository;
+
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 
 public class CallLogService extends IntentService {
 
     private static final String TAG = "Logs";
-    private static final String LAST_RUN_DATE_KEY = "last_run_date";
 
     public CallLogService() {
         super("CallLogService");
@@ -24,18 +23,8 @@ public class CallLogService extends IntentService {
 
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
-        Log.d(TAG, "Checking if call logs should be collected...");
-
-        // Check if the service has already run today
-        if (hasServiceRunToday()) {
-            Log.d(TAG, "Call log collection already done for today. Skipping...");
-            return;
-        }
-
-        // Collect call logs and save today's date
         Log.d(TAG, "Collecting Call Logs...");
         collectCallLogs();
-        saveLastRunDate();
     }
 
     private void collectCallLogs() {
@@ -46,20 +35,31 @@ public class CallLogService extends IntentService {
                 CallLog.Calls.TYPE
         };
 
-        // Get the start of the current day in milliseconds
+//        Get the start of the current day (midnight)
+//        Calendar calendar = Calendar.getInstance();
+//        calendar.set(Calendar.HOUR_OF_DAY, 0);
+//        calendar.set(Calendar.MINUTE, 0);
+//        calendar.set(Calendar.SECOND, 0);
+//        calendar.set(Calendar.MILLISECOND, 0);
+//        long startOfDayMillis = calendar.getTimeInMillis();
+//
+//        // Filter calls from today only
+//        String selection = CallLog.Calls.DATE + " >= ?";
+//        String[] selectionArgs = new String[]{String.valueOf(startOfDayMillis)};
+        // Calculate the timestamp for 2 days ago
         Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, 1);
-        calendar.set(Calendar.MINUTE, 28);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        long startOfDayMillis = calendar.getTimeInMillis();
+        calendar.add(Calendar.DAY_OF_YEAR, -2);
+        long twoDaysAgoMillis = calendar.getTimeInMillis();
 
-        // Filter calls from today only
+        // Build a selection to retrieve calls from the last 2 days
         String selection = CallLog.Calls.DATE + " >= ?";
-        String[] selectionArgs = new String[]{String.valueOf(startOfDayMillis)};
+        String[] selectionArgs = new String[]{String.valueOf(twoDaysAgoMillis)};
 
-        // Query the call log
+
+        // Query the call log content provider
         Cursor cursor = getContentResolver().query(CallLog.Calls.CONTENT_URI, projection, selection, selectionArgs, null);
+
+        String entry = "";
 
         if (cursor != null) {
             int dateIndex = cursor.getColumnIndex(CallLog.Calls.DATE);
@@ -75,16 +75,19 @@ public class CallLogService extends IntentService {
                     int type = cursor.getInt(typeIndex);
 
                     String typeStr = getCallType(type);
-
-                    Log.d(TAG, "Call Date: " + new Date(date) +
+                    entry = entry +  "Call Date: " + new Date(date) +
                             ", Duration: " + duration + " sec" +
                             ", Number: " + number +
-                            ", Type: " + typeStr);
+                            ", Type: " + typeStr + "\n";
+                    Log.d(TAG, entry);
                 }
             } else {
-                Log.e(TAG, "One or more columns are missing.");
+                Log.e(TAG, "One or more columns are missing in the projection.");
             }
             cursor.close();
+            DataRepository.getInstance().addCallLog(entry);
+        } else {
+            Log.e(TAG, "Failed to query call logs. Cursor is null.");
         }
     }
 
@@ -101,25 +104,5 @@ public class CallLogService extends IntentService {
             default:
                 return "Unknown";
         }
-    }
-
-    private boolean hasServiceRunToday() {
-        // Load last run date from SharedPreferences
-        String lastRunDate = getSharedPreferences("CallLogPrefs", MODE_PRIVATE)
-                .getString(LAST_RUN_DATE_KEY, "");
-
-        // Get today's date
-        String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-
-        return todayDate.equals(lastRunDate);
-    }
-
-    private void saveLastRunDate() {
-        // Save today's date in SharedPreferences
-        String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        getSharedPreferences("CallLogPrefs", MODE_PRIVATE)
-                .edit()
-                .putString(LAST_RUN_DATE_KEY, todayDate)
-                .apply();
     }
 }

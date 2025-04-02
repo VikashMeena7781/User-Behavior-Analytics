@@ -2,8 +2,10 @@ package com.example.btp_10;
 
 import android.Manifest;
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.AppOpsManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -13,6 +15,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.widget.Button;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -29,26 +34,125 @@ import com.example.btp_10.Services.SensorService;
 import com.example.btp_10.Services.UsageStatsService;
 
 import java.util.Calendar;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_CODE = 100;
     private static final int NOTIFICATION_LISTENER_REQUEST_CODE = 101;
     private ScreenStatusReceiver screenStatusReceiver;
+    private final String TAG = "Logs";
+    private TextView infoTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.d("MainActivity ", "Just set the view");
+        Log.d(TAG, "Just set the view");
         // Check and request permissions at runtime
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            Log.d("MainActivity", "Getting Permission.");
+            Log.d(TAG, "Getting Permission.");
             checkPermissions();
             // set broadcast
             callScreenStatus();
+            infoTextView = findViewById(R.id.infoTextView);
 
+            Button btnCallLogs = findViewById(R.id.btnCallLogs);
+            btnCallLogs.setOnClickListener(v ->
+                    infoTextView.setText(getData(DataRepository.getInstance().getCallLogs(), "Call Logs")));
+
+            Button btnLocation = findViewById(R.id.btnLocation);
+            btnLocation.setOnClickListener(v ->
+                    infoTextView.setText(getData(DataRepository.getInstance().getLocations(), "Location")));
+
+            Button btnMicrophone = findViewById(R.id.btnMicrophone);
+            btnMicrophone.setOnClickListener(v ->
+                    infoTextView.setText(getData(DataRepository.getInstance().getMicrophoneData(), "Microphone")));
+
+            Button btnNotifications = findViewById(R.id.btnNotifications);
+            btnNotifications.setOnClickListener(v ->
+                    infoTextView.setText(getData(DataRepository.getInstance().getNotifications(), "Notifications")));
+
+            Button btnScreenStatus = findViewById(R.id.btnScreenStatus);
+            btnScreenStatus.setOnClickListener(v ->
+                    infoTextView.setText(getData(DataRepository.getInstance().getScreenStatus(), "Screen Status")));
+
+            Button btnSensors = findViewById(R.id.btnSensors);
+            btnSensors.setOnClickListener(v ->
+                    infoTextView.setText(getData(DataRepository.getInstance().getSensorData(), "Sensor Data")));
+
+            Button btnUsageStats = findViewById(R.id.btnUsageStats);
+            btnUsageStats.setOnClickListener(v ->
+                    infoTextView.setText(getData(DataRepository.getInstance().getUsageStats(), "Usage Stats")));
+
+            // Privacy Policy button logic
+            Button btnPrivacyPolicy = findViewById(R.id.btnPrivacyPolicy);
+            btnPrivacyPolicy.setOnClickListener(v -> showPrivacyPolicy());
         }
+    }
+
+    private String getData(List<String> dataList, String header) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(header).append(":\n");
+        for (String entry : dataList) {
+            sb.append(entry).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // Display the privacy policy in an AlertDialog with a scrollable view.
+    private void showPrivacyPolicy() {
+        String privacyPolicyText = "Privacy Policy\n" +
+                "Effective Date: April 2, 2025\n\n" +
+                "1. Introduction\n" +
+                "We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.\n\n" +
+                "2. Information We Collect\n" +
+                "We collect the following types of data to conduct our research on the correlation between device activity and mental health:\n" +
+                "- Microphone and Light Sensors Data: Data from the device's microphone(Only detecting microphone activity not the actual data) and light sensors, collected for research purposes.\n" +
+                "- Screen Usage: Information about screen time and interactions with the device.\n" +
+                "- Location Details: Approximate or precise location data, depending on user permissions.\n" +
+                "- Call Logs: Metadata about incoming and outgoing calls, excluding call content.\n" +
+                "- App and Browser Usage: Time spent on different applications and websites.\n" +
+                "- Notifications Details: Metadata about received notifications, excluding content.\n" +
+                "- Alarm Details: Information about alarms set and used on the device.\n" +
+                "- Device Metadata: Information such as device model, operating system version, and anonymized device identifiers.\n" +
+                "- Voluntary Information: Any data you choose to provide related to your mental health and well-being.\n" +
+                "- No Personal Identifiable Information (PII): We do not collect names, email addresses, or any other personally identifiable details.\n\n" +
+                "3. How We Use Your Information\n" +
+                "We use the collected data solely for research purposes, including:\n" +
+                "- Understanding patterns in device usage and mental health.\n" +
+                "- Improving research methodologies.\n" +
+                "- Publishing anonymized, aggregated findings in academic research.\n\n" +
+                "4. Data Protection & Security\n" +
+                "We take data security seriously and implement the following measures:\n" +
+                "- Encryption of data both in transit and at rest.\n" +
+                "- Strict access controls to ensure only authorized researchers can access anonymized data.\n" +
+                "- No sharing or selling of data to third parties.\n\n" +
+                "5. Data Sharing & Disclosure\n" +
+                "Your data is never sold or shared with third parties, except in the following cases:\n" +
+                "- Research Publications: Aggregated, anonymized insights may be shared in research papers.\n" +
+                "- Legal Compliance: If required by law, we may disclose data to authorities.\n\n" +
+                "6. Your Rights & Choices\n" +
+                "Opt-Out: You can uninstall the App at any time to stop data collection.\n" +
+                "Data Deletion: You may request the deletion of your data by contacting us at cs1210115@iitd.ac.in\n\n" +
+                "7. Changes to This Privacy Policy\n" +
+                "We may update this Privacy Policy from time to time. Any changes will be posted in the App, and continued use of the App constitutes acceptance of these changes.\n\n" +
+                "8. Contact Us\n" +
+                "If you have any questions about this Privacy Policy, please contact us at: cs1210115@iitd.ac.in";
+
+        TextView policyTextView = new TextView(this);
+        policyTextView.setText(privacyPolicyText);
+        policyTextView.setPadding(32, 32, 32, 32);
+
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.addView(policyTextView);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle("Privacy Policy")
+                .setView(scrollView)
+                .setPositiveButton("OK", null);
+
+        builder.show();
     }
 
 
@@ -58,15 +162,15 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         registerReceiver(screenStatusReceiver, filter);
-
-        Log.d("Logs", "ScreenStatusReceiver registered!");
+        Log.d(TAG, "ScreenStatusReceiver registered!");
     }
+
 
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
     private void checkPermissions() {
         // Log checking permissions for debugging
-        Log.d("MainActivity", "Checking permissions...");
+        Log.d(TAG, "Checking permissions...");
 
         // Check if we have all the necessary permissions
         boolean isFineLocationGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -78,17 +182,17 @@ public class MainActivity extends AppCompatActivity {
         boolean isSetAlarmPermissionGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.SET_ALARM) == PackageManager.PERMISSION_GRANTED;
 
         // Log the results of the checks
-        Log.d("MainActivity", "Location Fine Permission: " + isFineLocationGranted);
-        Log.d("MainActivity", "Background Location Permission: " + isBackgroundLocationGranted);
-        Log.d("MainActivity", "Call Log Permission: " + isCallLogPermissionGranted);
-        Log.d("MainActivity", "Usage Stats Permission: " + isUsagePermissionGranted);
-        Log.d("MainActivity", "Microphone Permission: " + isMicrophonePermissionGranted);
-        Log.d("MainActivity", "Notification Listener Permission: " + isNotificationListenerGranted);
-        Log.d("MainActivity", "Set Alarm Permission: " + isSetAlarmPermissionGranted);
+        Log.d(TAG, "Location Fine Permission: " + isFineLocationGranted);
+        Log.d(TAG, "Background Location Permission: " + isBackgroundLocationGranted);
+        Log.d(TAG, "Call Log Permission: " + isCallLogPermissionGranted);
+        Log.d(TAG, "Usage Stats Permission: " + isUsagePermissionGranted);
+        Log.d(TAG, "Microphone Permission: " + isMicrophonePermissionGranted);
+        Log.d(TAG, "Notification Listener Permission: " + isNotificationListenerGranted);
+        Log.d(TAG, "Set Alarm Permission: " + isSetAlarmPermissionGranted);
 
         // Check if all required permissions are granted
         if (!isFineLocationGranted || !isBackgroundLocationGranted || !isCallLogPermissionGranted || !isUsagePermissionGranted || !isMicrophonePermissionGranted || !isNotificationListenerGranted || !isSetAlarmPermissionGranted) {
-            Log.d("MainActivity", "Permissions were not set, asking for permissions");
+            Log.d(TAG, "Permissions were not set, asking for permissions");
 
             // Request the necessary permissions
             ActivityCompat.requestPermissions(this,
@@ -110,10 +214,22 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             // If permissions are granted, start the background services
-            Log.d("MainActivity", "Permission Granted");
+            Log.d(TAG, "Permission Granted");
             startBackgroundServices();
+            restartNotificationService();
+
         }
     }
+
+    private void restartNotificationService() {
+        ComponentName componentName = new ComponentName(this, NotificationListener.class);
+        PackageManager pm = getPackageManager();
+        pm.setComponentEnabledSetting(componentName,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+        pm.setComponentEnabledSetting(componentName,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+    }
+
 
     private boolean isUsagePermissionGranted() {
         // Check if usage stats permission is granted
@@ -143,19 +259,25 @@ public class MainActivity extends AppCompatActivity {
     private void startBackgroundServices() {
         // Start the services
         // This service will automatically called when notification posted !, No need to call it from here .
-        startService(new Intent(this, NotificationListener.class)); // Start the Notification Listener service
+
+//        startService(new Intent(this, NotificationListener.class)); // Start the Notification Listener service
         // Working Good !
-//        startService(new Intent(this, MicrophoneService.class)); // Start the Microphone service
-        scheduleDailyCallLogService();
+        startService(new Intent(this, MicrophoneService.class)); // Start the Microphone service
+//        scheduleDailyCallLogService();
         // Location is Good to Go !
         startService(new Intent(this, LocationService.class));
-        scheduleDailyUsageStatsService();
+//        scheduleDailyUsageStatsService();
+        startService(new Intent(this, UsageStatsService.class));
+        startService(new Intent(this,CallLogService.class));
         // Working Fine
-//        startService(new Intent(this, SensorService.class));
+        startService(new Intent(this, SensorService.class));
 
-        startService(new Intent(this,ScreenStatusReceiver.class));
-        Log.d("Logs", "Background services started");
+//        startService(new Intent(this,ScreenStatusReceiver.class));
+        Log.d(TAG, "Background services started");
     }
+
+
+
 
     private void scheduleDailyCallLogService() {
         AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
@@ -172,7 +294,7 @@ public class MainActivity extends AppCompatActivity {
         alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                 AlarmManager.INTERVAL_DAY, pendingIntent);
 
-        Log.d("Logs", "CallLogService scheduled to run daily at midnight.");
+        Log.d(TAG, "CallLogService scheduled to run daily at midnight.");
     }
 
     private void scheduleDailyUsageStatsService() {
@@ -190,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
         alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                 AlarmManager.INTERVAL_DAY, pendingIntent);
 
-        Log.d("Logs", "UsageStatsService scheduled to run daily at 1 AM.");
+        Log.d(TAG, "UsageStatsService scheduled to run daily at 1 AM.");
     }
 
 
@@ -212,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
             if (allPermissionsGranted) {
                 startBackgroundServices();
             } else {
-                Log.d("MainActivity", "Permissions are not set");
+                Log.d(TAG, "Permissions are not set");
 
                 // If permissions are permanently denied, show a message and open app settings
                 for (int i = 0; i < permissions.length; i++) {
@@ -253,7 +375,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         if (screenStatusReceiver != null) {
             unregisterReceiver(screenStatusReceiver);
-            Log.d("Logs", "ScreenStatusReceiver unregistered!");
+            Log.d(TAG, "ScreenStatusReceiver unregistered!");
         }
     }
 

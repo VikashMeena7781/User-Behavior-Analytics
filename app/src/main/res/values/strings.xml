@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">BTP-1.0</string>
+    <string name="collecting_data_in_the_background">Collecting data in the background...</string>
 </resources>

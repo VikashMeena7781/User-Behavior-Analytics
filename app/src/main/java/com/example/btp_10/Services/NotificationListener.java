@@ -5,6 +5,8 @@ import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import android.app.Notification;
 
+import com.example.btp_10.DataRepository;
+
 public class NotificationListener extends NotificationListenerService {
 
     private static final String TAG = "Logs";
@@ -57,13 +59,13 @@ public class NotificationListener extends NotificationListenerService {
         Notification notification = sbn.getNotification();
         String title = notification.extras.getString(Notification.EXTRA_TITLE);
         String text  = notification.extras.getString(Notification.EXTRA_TEXT);
-
-        Log.d(TAG,
-                eventType + " Notification --> " +
-                        "Package: " + packageName +
-                        ", ID: " + sbn.getId() +
-                        ", Title: " + title +
-                        ", Text: " + text
-        );
+        String entry = eventType + " Notification --> " +
+                "Package: " + packageName +
+                ", ID: " + sbn.getId();
+//                        ", Title: " + title +
+//                        ", Text: " + text
+        Log.d(TAG, entry);
+        // You can add more details as needed
+        DataRepository.getInstance().addNotification(entry);
     }
 }

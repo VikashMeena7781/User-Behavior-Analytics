@@ -1,8 +1,7 @@
 package com.example.btp_10.Services;
 
 import android.app.Service;
-import android.content.Intent;
-import android.hardware.Sensor;
+import android.content.Intent;import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
@@ -11,6 +10,8 @@ import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
+
+import com.example.btp_10.DataRepository;
 
 import java.util.List;
 
@@ -21,8 +22,6 @@ public class SensorService extends Service implements SensorEventListener {
     private Sensor lightSensor;
     private Sensor motionSensor;
     private Sensor accelerometerSensor;  // For fallback motion detection
-    private float currentLightLevel;
-    private boolean isMotionDetected;
 
     public SensorService() {
     }
@@ -33,12 +32,6 @@ public class SensorService extends Service implements SensorEventListener {
         super.onCreate();
         // Initialize SensorManager
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-
-        // Get and log all available sensors
-//        List<Sensor> allSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
-//        for (Sensor sensor : allSensors) {
-//            Log.d(TAG, "Available Sensor: " + sensor.getName());
-//        }
 
         // Get Light Sensor
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -109,34 +102,44 @@ public class SensorService extends Service implements SensorEventListener {
     public void onSensorChanged(SensorEvent event) {
         // Handle changes in sensor data
         if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
-            currentLightLevel = event.values[0];
-//            Log.d(TAG, "Current Light Level: " + currentLightLevel);
+            float currentLightLevel = event.values[0];
             if (currentLightLevel >= 10) {
-                Log.d(TAG, "The phone is in a light environment");
+                String entry = "The phone is in a light environment";
+                Log.d(TAG, entry);
+                DataRepository.getInstance().addSensorData(entry);
+//                Log.d(TAG, "The phone is in a light environment");
+            } else{
+                String entry = "The phone is in a dark environment";
+                Log.d(TAG, entry);
+                DataRepository.getInstance().addSensorData(entry);
             }
-//            } else {
-////                Log.d(TAG, "The phone is in a light environment");
-//            }
         } else if (event.sensor.getType() == Sensor.TYPE_MOTION_DETECT) {
-            isMotionDetected = event.values[0] == 1.0f;
+            boolean isMotionDetected = event.values[0] == 1.0f;
             if (isMotionDetected) {
-                Log.d(TAG, "Motion Detected: The phone is moving");
+                String entry = "Motion Detected: The phone is moving";
+                Log.d(TAG, entry);
+                DataRepository.getInstance().addSensorData(entry);
+//                Log.d(TAG, "Motion Detected: The phone is moving");
+            }else{
+                String entry = "No Motion Detected: The phone is not moving";
+                Log.d(TAG, entry);
+                DataRepository.getInstance().addSensorData(entry);
             }
-//            } else {
-//                Log.d(TAG, "Motion Not Detected: The phone is at rest");
-//            }
         } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             // Handle motion detection using accelerometer
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
-            float magnitude = (float) Math.sqrt(x * x + y * y + z * z);
+            float magnitude = (float) Math.sqrt(x* x + y * y + z * z);
             if (magnitude > 10) {
-                Log.d(TAG, "Motion Detected: The phone is moving");
+                String entry = "Motion Detected: The phone is moving";
+                Log.d(TAG, entry);
+                DataRepository.getInstance().addSensorData(entry);
+            }else{
+                String entry = "No Motion Detected: The phone is not moving";
+                Log.d(TAG, entry);
+                DataRepository.getInstance().addSensorData(entry);
             }
-//            else {
-//                Log.d(TAG, "No significant motion detected using Accelerometer");
-//            }
         }
     }
 
