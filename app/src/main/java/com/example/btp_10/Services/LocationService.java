@@ -38,7 +38,6 @@ public class LocationService extends IntentService {
             Log.d(TAG, "Permission Not Provided.");
             return;
         }
-
         // Use the main executor for handling location result on the main thread
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(ContextCompat.getMainExecutor(this), new OnSuccessListener<Location>() {

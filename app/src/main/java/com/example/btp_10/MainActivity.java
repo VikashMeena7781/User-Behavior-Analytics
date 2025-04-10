@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -88,6 +89,14 @@ public class MainActivity extends AppCompatActivity {
             // Privacy Policy button logic
             Button btnPrivacyPolicy = findViewById(R.id.btnPrivacyPolicy);
             btnPrivacyPolicy.setOnClickListener(v -> showPrivacyPolicy());
+
+            Button fillsurvery = findViewById(R.id.btnfillsurvery);
+            fillsurvery.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    startActivity(new Intent(MainActivity.this, SurveyActivity.class));
+                }
+            });
         }
     }
 

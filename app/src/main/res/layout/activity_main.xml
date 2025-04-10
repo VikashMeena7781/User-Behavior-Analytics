@@ -62,7 +62,14 @@
             android:id="@+id/btnPrivacyPolicy"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Show Privacy Policy"
+            android:text="See Privacy Policy"
+            android:layout_marginTop="24dp" />
+
+        <Button
+            android:id="@+id/btnfillsurvery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fill Survery"
             android:layout_marginTop="24dp" />
 
     </LinearLayout>
