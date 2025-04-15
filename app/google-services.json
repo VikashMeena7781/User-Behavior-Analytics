@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "752184040806",
+    "project_id": "btp-data-collection-app",
+    "storage_bucket": "btp-data-collection-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:752184040806:android:55de188acba992d45c7ca7",
+        "android_client_info": {
+          "package_name": "com.example.btp1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChqo_uPdCguhz8o-CvY50Q9BA43HpXYdI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
