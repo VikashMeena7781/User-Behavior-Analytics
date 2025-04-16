@@ -28,13 +28,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.example.btp_10.Services.CallLogService;
-import com.example.btp_10.Services.LocationService;
-import com.example.btp_10.Services.MicrophoneService;
-import com.example.btp_10.Services.NotificationListener;
-import com.example.btp_10.Services.ScreenStatusReceiver;
-import com.example.btp_10.Services.SensorService;
-import com.example.btp_10.Services.UsageStatsService;
+import com.example.btp1.Services.CallLogService;
+import com.example.btp1.Services.LocationService;
+import com.example.btp1.Services.MicrophoneService;
+import com.example.btp1.Services.NotificationListener;
+import com.example.btp1.Services.ScreenStatusReceiver;
+import com.example.btp1.Services.SensorService;
+import com.example.btp1.Services.UsageStatsService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 

@@ -27,7 +27,8 @@ public class DataRepository {
     // Firebase components
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-    private DataRepository() { }
+    private DataRepository() {
+    }
 
     public static DataRepository getInstance() {
         return instance;
@@ -158,3 +159,4 @@ public class DataRepository {
                 .addOnFailureListener(e ->
                         Log.e(TAG, "Error saving survey", e));
     }
+}

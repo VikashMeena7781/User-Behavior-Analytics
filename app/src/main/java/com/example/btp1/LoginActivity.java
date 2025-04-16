@@ -17,6 +17,8 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import java.util.Objects;
+
 public class LoginActivity extends AppCompatActivity {
 
     private TextInputEditText etLoginEmail, etLoginPassword;
@@ -107,7 +109,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void resetPassword() {
-        String email = etLoginEmail.getText().toString().trim();
+        String email = Objects.requireNonNull(etLoginEmail.getText()).toString().trim();
 
         if (TextUtils.isEmpty(email)) {
             etLoginEmail.setError("Enter your email to reset password");
