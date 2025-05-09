@@ -16,8 +16,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission
         android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-        tools:ignore="ProtectedPermissions" />
-    <!-- Permission to access Alarm Manager -->
+        tools:ignore="ProtectedPermissions" /> <!-- Permission to access Alarm Manager -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
 
     <application
@@ -30,10 +29,7 @@
 
         <activity
             android:name=".SurveyActivity"
-            android:exported="false" />
-
-
-        <!-- Services -->
+            android:exported="false" /> <!-- Services -->
         <service
             android:name=".Services.LocationService"
             android:enabled="true"
@@ -62,9 +58,7 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
-        </service>
-
-        <!-- ScreenStatusReceiver (Receiver for SCREEN_ON and SCREEN_OFF events) -->
+        </service> <!-- ScreenStatusReceiver (Receiver for SCREEN_ON and SCREEN_OFF events) -->
         <receiver
             android:name=".Services.ScreenStatusReceiver"
             android:exported="true">
@@ -75,13 +69,23 @@
         </receiver>
 
         <activity
-            android:name=".MainActivity"
+            android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".SignupActivity"
+            android:exported="true" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+        </activity>
+
 
     </application>
 
