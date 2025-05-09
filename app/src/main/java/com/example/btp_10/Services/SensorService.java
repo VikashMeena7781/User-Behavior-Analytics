@@ -1,7 +1,8 @@
 package com.example.btp_10.Services;
 
 import android.app.Service;
-import android.content.Intent;import android.hardware.Sensor;
+import android.content.Intent;
+import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
@@ -9,19 +10,48 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.example.btp_10.DataRepository;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SensorService extends Service implements SensorEventListener {
 
     private SensorManager sensorManager;
     private final String TAG = "Logs";
     private Sensor lightSensor;
-    private Sensor motionSensor;
-    private Sensor accelerometerSensor;  // For fallback motion detection
+    private Sensor motionSensor; // Preferred motion sensor
+    private Sensor accelerometerSensor; // Fallback motion sensor
+
+    // State tracking variables
+    private static final String STATE_UNKNOWN = "UNKNOWN";
+    private static final String STATE_LIGHT = "LIGHT"; // Light level >= threshold
+    private static final String STATE_DARK = "DARK";   // Light level < threshold
+    private static final String STATE_MOVING = "MOVING";
+    private static final String STATE_STATIONARY = "STATIONARY";
+
+    private String lastLightState = STATE_UNKNOWN;
+    private String lastMotionState = STATE_UNKNOWN;
+
+    // Thresholds
+    private static final float LIGHT_THRESHOLD = 10.0f; // Lux level to differentiate light/dark
+    private static final float ACCEL_MOTION_THRESHOLD = 10.5f; // Magnitude threshold for accelerometer motion (adjust as needed)
+    private static final float MOTION_DETECT_VALUE = 1.0f; // Value indicating motion detected by TYPE_MOTION_DETECT
+
+    // Firebase
+    private FirebaseAuth mAuth;
+    private DatabaseReference lightTransitionRef;
+    private DatabaseReference motionTransitionRef;
 
     public SensorService() {
     }
@@ -30,127 +60,196 @@ public class SensorService extends Service implements SensorEventListener {
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG, "SensorService onCreate");
         // Initialize SensorManager
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
-        // Get Light Sensor
+        // Initialize Firebase
+        mAuth = FirebaseAuth.getInstance();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            String userId = currentUser.getUid();
+            lightTransitionRef = FirebaseDatabase.getInstance().getReference("lightTransitions").child(userId);
+            motionTransitionRef = FirebaseDatabase.getInstance().getReference("motionTransitions").child(userId);
+        } else {
+            Log.w(TAG, "User not logged in, Firebase references not initialized.");
+            // Consider stopping the service or handling this case appropriately
+        }
+
+        // Get Sensors
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-
-        // Get Motion Sensor
         motionSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MOTION_DETECT);
-
-        // Fallback: Use Accelerometer for motion detection if motion sensor is not available
         accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
-        if (lightSensor == null) {
-            Log.d(TAG, "Light sensor not available");
-        } else {
-            Log.d(TAG, "Light sensor initialized");
-        }
+        // Log sensor availability
+        logSensorStatus(lightSensor, "Light");
+        logSensorStatus(motionSensor, "Motion Detect");
+        logSensorStatus(accelerometerSensor, "Accelerometer (Motion Fallback)");
+    }
 
-        if (motionSensor == null) {
-            Log.d(TAG, "Motion sensor not available");
+    private void logSensorStatus(Sensor sensor, String name) {
+        if (sensor != null) {
+            Log.d(TAG, name + " sensor initialized.");
         } else {
-            Log.d(TAG, "Motion sensor initialized");
-        }
-
-        if (accelerometerSensor != null) {
-            Log.d(TAG, "Accelerometer sensor initialized (fallback for motion detection)");
-        } else {
-            Log.d(TAG, "Accelerometer sensor not available");
+            Log.d(TAG, name + " sensor not available.");
         }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Register light and motion sensors
+        Log.d(TAG, "SensorService onStartCommand");
+        // Register listeners with a slightly less frequent delay
+        int sensorDelay = SensorManager.SENSOR_DELAY_NORMAL; // Use NORMAL instead of UI
+
         if (lightSensor != null) {
-            sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_UI);
+            sensorManager.registerListener(this, lightSensor, sensorDelay);
         }
 
+        // Prefer TYPE_MOTION_DETECT if available
         if (motionSensor != null) {
-            sensorManager.registerListener(this, motionSensor, SensorManager.SENSOR_DELAY_UI);
+            sensorManager.registerListener(this, motionSensor, sensorDelay);
         } else if (accelerometerSensor != null) {
-            // Fallback: Use accelerometer if motion sensor is unavailable
-            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_UI);
+            // Fallback to accelerometer
+            Log.d(TAG, "Using Accelerometer for motion detection.");
+            sensorManager.registerListener(this, accelerometerSensor, sensorDelay);
         }
 
-        return START_STICKY; // Keep service running until explicitly stopped
+        return START_STICKY; // Keep service running
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-
-        // Unregister the sensor listeners to avoid memory leaks
-        if (lightSensor != null) {
-            sensorManager.unregisterListener(this, lightSensor);
-        }
-
-        if (motionSensor != null) {
-            sensorManager.unregisterListener(this, motionSensor);
-        }
-
-        if (accelerometerSensor != null) {
-            sensorManager.unregisterListener(this, accelerometerSensor);
-        }
-
+        // Unregister listeners
+        sensorManager.unregisterListener(this);
         Log.d(TAG, "Sensors unregistered and service destroyed");
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        // Handle changes in sensor data
-        if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
-            float currentLightLevel = event.values[0];
-            if (currentLightLevel >= 10) {
-                String entry = "The phone is in a light environment";
-                Log.d(TAG, entry);
-                DataRepository.getInstance().addSensorData(entry);
-//                Log.d(TAG, "The phone is in a light environment");
-            } else{
-                String entry = "The phone is in a dark environment";
-                Log.d(TAG, entry);
-                DataRepository.getInstance().addSensorData(entry);
+        String currentLightState = null;
+        String currentMotionState = null;
+
+        // Determine current state based on sensor type
+        switch (event.sensor.getType()) {
+            case Sensor.TYPE_LIGHT:
+                float lightLevel = event.values[0];
+                currentLightState = (lightLevel >= LIGHT_THRESHOLD) ? STATE_LIGHT : STATE_DARK;
+                handleLightStateChange(currentLightState);
+                break;
+
+            case Sensor.TYPE_MOTION_DETECT:
+                // This sensor typically triggers once when motion starts.
+                // We interpret its trigger as entering the MOVING state.
+                // Lack of trigger implies STATIONARY (handled implicitly by state change logic).
+                boolean motionDetected = (event.values[0] == MOTION_DETECT_VALUE);
+                if (motionDetected) {
+                    currentMotionState = STATE_MOVING;
+                    handleMotionStateChange(currentMotionState);
+                }
+                // Note: TYPE_MOTION_DETECT doesn't explicitly signal stopping motion.
+                // We might need a timeout or rely on accelerometer if continuous state is needed.
+                // For simplicity, we only record the start of motion ("01") with this sensor.
+                // To record "10", we'd need the accelerometer fallback or a timeout mechanism.
+                break;
+
+            case Sensor.TYPE_ACCELEROMETER:
+                // Only use accelerometer if motionSensor is null
+                if (motionSensor == null) {
+                    float x = event.values[0];
+                    float y = event.values[1];
+                    float z = event.values[2];
+                    // Calculate magnitude, ignoring gravity (approximate)
+                    double magnitude = Math.sqrt(x * x + y * y + z * z);
+                    // Simple threshold check (adjust ACCEL_MOTION_THRESHOLD)
+                    currentMotionState = (magnitude > ACCEL_MOTION_THRESHOLD) ? STATE_MOVING : STATE_STATIONARY;
+                    handleMotionStateChange(currentMotionState);
+                }
+                break;
+        }
+    }
+
+    private void handleLightStateChange(String currentState) {
+        if (!lastLightState.equals(currentState) && !lastLightState.equals(STATE_UNKNOWN)) {
+            String transitionCode = null;
+            if (lastLightState.equals(STATE_DARK) && currentState.equals(STATE_LIGHT)) {
+                transitionCode = "01"; // Dark -> Light
+            } else if (lastLightState.equals(STATE_LIGHT) && currentState.equals(STATE_DARK)) {
+                transitionCode = "10"; // Light -> Dark
             }
-        } else if (event.sensor.getType() == Sensor.TYPE_MOTION_DETECT) {
-            boolean isMotionDetected = event.values[0] == 1.0f;
-            if (isMotionDetected) {
-                String entry = "Motion Detected: The phone is moving";
-                Log.d(TAG, entry);
-                DataRepository.getInstance().addSensorData(entry);
-//                Log.d(TAG, "Motion Detected: The phone is moving");
-            }else{
-                String entry = "No Motion Detected: The phone is not moving";
-                Log.d(TAG, entry);
-                DataRepository.getInstance().addSensorData(entry);
+
+            if (transitionCode != null) {
+                Log.d(TAG, "Light Transition: " + lastLightState + " -> " + currentState + " (" + transitionCode + ")");
+                storeTransitionInFirebase(lightTransitionRef, transitionCode, "Light");
+                // Log locally if needed
+                DataRepository.getInstance().addSensorData("Light Transition: " + transitionCode);
             }
-        } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            // Handle motion detection using accelerometer
-            float x = event.values[0];
-            float y = event.values[1];
-            float z = event.values[2];
-            float magnitude = (float) Math.sqrt(x* x + y * y + z * z);
-            if (magnitude > 10) {
-                String entry = "Motion Detected: The phone is moving";
-                Log.d(TAG, entry);
-                DataRepository.getInstance().addSensorData(entry);
-            }else{
-                String entry = "No Motion Detected: The phone is not moving";
-                Log.d(TAG, entry);
-                DataRepository.getInstance().addSensorData(entry);
+        }
+        // Update last state if it changed or was unknown
+        if (!lastLightState.equals(currentState)) {
+            lastLightState = currentState;
+        }
+    }
+
+    private void handleMotionStateChange(String currentState) {
+        if (!lastMotionState.equals(currentState) && !lastMotionState.equals(STATE_UNKNOWN)) {
+            String transitionCode = null;
+            if (lastMotionState.equals(STATE_STATIONARY) && currentState.equals(STATE_MOVING)) {
+                transitionCode = "01"; // Stationary -> Moving
+            } else if (lastMotionState.equals(STATE_MOVING) && currentState.equals(STATE_STATIONARY)) {
+                transitionCode = "10"; // Moving -> Stationary
             }
+
+            // Special case for TYPE_MOTION_DETECT: It only signals "01" reliably.
+            if (motionSensor != null && "10".equals(transitionCode)) {
+                Log.d(TAG, "Ignoring '10' transition for TYPE_MOTION_DETECT sensor.");
+                transitionCode = null; // Don't store "10" if using only TYPE_MOTION_DETECT
+            }
+
+
+            if (transitionCode != null) {
+                Log.d(TAG, "Motion Transition: " + lastMotionState + " -> " + currentState + " (" + transitionCode + ")");
+                storeTransitionInFirebase(motionTransitionRef, transitionCode, "Motion");
+                // Log locally if needed
+                DataRepository.getInstance().addSensorData("Motion Transition: " + transitionCode);
+            }
+        }
+        // Update last state if it changed or was unknown
+        if (!lastMotionState.equals(currentState)) {
+            lastMotionState = currentState;
+        }
+    }
+
+    private void storeTransitionInFirebase(DatabaseReference dbRef, String transitionCode, String type) {
+        if (dbRef == null) {
+            Log.w(TAG, "Database reference is null. Cannot store " + type + " transition.");
+            return; // Don't proceed if user wasn't logged in during onCreate
+        }
+
+        long timestamp = System.currentTimeMillis();
+        Map<String, Object> transitionData = new HashMap<>();
+        transitionData.put("transition", transitionCode);
+        transitionData.put("timestamp", timestamp);
+
+        // Generate a unique key
+        String entryKey = dbRef.push().getKey();
+
+        if (entryKey != null) {
+            dbRef.child(entryKey)
+                    .setValue(transitionData)
+                    .addOnSuccessListener(aVoid -> Log.d(TAG, type + " transition (" + transitionCode + ") stored in Firebase."))
+                    .addOnFailureListener(e -> Log.e(TAG, "Error storing " + type + " transition in Firebase: " + e.getMessage()));
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        // Handle sensor accuracy changes if necessary
+        // Can be ignored for this use case
     }
 
+    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        // Return null since this is a started service, not a bound service
-        return null;
+        return null; // Not a bound service
     }
 }
